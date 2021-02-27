@@ -16,10 +16,7 @@ const MoveDot = (entities, {touches}) => {
 const MoveWall = (entities, {touches}) => {
   let wall = entities[2];
   if (wall && wall.position) {
-    wall.position = [
-      wall.position[0],
-      wall.position[1] + 0.1,
-    ];
+    wall.position = [wall.position[0], wall.position[1] + 0.1];
   }
   return entities;
 };

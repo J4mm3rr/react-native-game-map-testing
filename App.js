@@ -6,13 +6,58 @@
  * @flow strict-local
  */
 
-import React, {PureComponent} from 'react';
-import {AppRegistry, StyleSheet, StatusBar} from 'react-native';
+import React, {PureComponent, useState} from 'react';
+import {
+  AppRegistry,
+  StyleSheet,
+  StatusBar,
+  Dimensions,
+  Alert,
+} from 'react-native';
 import {GameEngine} from 'react-native-game-engine';
 import {Dot, Wall} from './src/renderers';
 import {MoveDot, MoveWall} from './src/movement';
+import Matter from 'matter-js';
+import Box from './src/box';
 
-class App extends PureComponent {
+let globalVar = {};
+
+const {width, height} = Dimensions.get('screen');
+const boxSize = Math.trunc(Math.max(width, height) * 0.075);
+
+const initialBox = Matter.Bodies.rectangle(
+  width / 2,
+  height / 2,
+  boxSize,
+  boxSize,
+);
+const floor = Matter.Bodies.rectangle(
+  width / 2,
+  height - boxSize / 2,
+  width,
+  boxSize,
+  {isStatic: true},
+);
+
+const engine = Matter.Engine.create({enableSleeping: false});
+const world = engine.world;
+Matter.World.add(world, [initialBox, floor]);
+
+const Physics = (entities, {time}) => {
+  let engine = entities.physics.engine;
+  Matter.Engine.update(engine, time.delta);
+  return entities;
+};
+
+Matter.Events.on(engine, 'collisionStart', ({pairs}) => {
+  pairs.forEach(({bodyA, bodyB}) => {
+    Alert.alert(
+      `Collision Detected: ${bodyA.label} collided with ${bodyB.label}!`,
+    );
+  });
+});
+
+class App extends React.Component {
   constructor() {
     super();
   }
@@ -21,12 +66,24 @@ class App extends PureComponent {
     return (
       <GameEngine
         style={styles.container}
-        systems={[MoveDot, MoveWall]}
+        systems={[Physics]}
         entities={{
-          1: {position: [40, 200], radius: 20, renderer: <Dot />},
-          2: {position: [120, 600], width: 40, height: 480, renderer: <Wall />},
-          3: {position: [300, 300], width: 180, height: 40, renderer: <Wall />},
-          4: {position: [320, 500], width: 170, height: 50, renderer: <Wall />},
+          physics: {
+            engine: engine,
+            world: world,
+          },
+          initialBox: {
+            body: initialBox,
+            size: [boxSize, boxSize],
+            color: 'green',
+            renderer: Box,
+          },
+          floor: {
+            body: floor,
+            size: [width, boxSize],
+            color: 'red',
+            renderer: Box,
+          },
         }}>
         <StatusBar hidden={true} />
       </GameEngine>
